@@ -2,7 +2,7 @@
 
 This repository includes scripts for functional gene annotation and some basic genome analysis (repeat finding) on the Acropora digitifera genome.
 
-Latest genome is [v1.1 from NCBI RefSeq](https://www.ncbi.nlm.nih.gov/assembly/GCF_000222465.1/)
+The latest genome is [v1.1 from NCBI RefSeq](https://www.ncbi.nlm.nih.gov/assembly/GCF_000222465.1/)
 
 Annotations are available as the file `annotation_table.tsv` after downloading the data package (see below)
 
