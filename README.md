@@ -8,7 +8,7 @@ Annotations are available as the file `annotation_table.tsv` after downloading t
 
 ### Functional annotations
 
-Command line analyses are summarised in [latest/annotation/README.md](v1.1/annotation/README.md)
+Command line analyses are summarised in [latest/README.md](v1.1/README.md)
 
 R code to merge results and produce a final file is in [01_annotate](01_annotate.md)
 
