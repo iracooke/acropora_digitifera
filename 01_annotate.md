@@ -1,0 +1,104 @@
+Gene Annotations for Acropora digitifera
+================
+
+This document combines results from a wide variety of analysis programs
+to produce a single table with one row per protein. It assumes that
+outputs from annotation programs are present in `latest/annotation/`
+
+Raw data includes;
+
+*Protein lengths*
+
+``` r
+# Lengths
+#
+protein_lengths <- read_tsv("latest/annotation/GCF_000222465.1_Adig_1.1_protein.lengths.txt",col_types = cols(),col_names = c("adi_id","protein_length"))
+```
+
+*Outputs from blastp and blastx searches against Swissprot*
+
+``` r
+# BLAST
+#
+bl6_cols <- c("qaccver","saccver","pident","length","mismatch","gapopen","qstart","qend","sstart","send","evalue","bitscore")
+blastp <- read_tsv("latest/annotation/GCF_000222465.1_Adig_1.1_protein.blastp.outfmt6",col_names = bl6_cols,col_types = cols()) %>% 
+  select(adi_id = qaccver, evalue,uniprot_id=saccver) %>% add_column(method = "blastp")
+blastx <- read_tsv("latest/annotation/GCF_000222465.1_Adig_1.1_protein.blastx.outfmt6",col_names = bl6_cols,col_types = cols())  %>% 
+  select(adi_id = qaccver, evalue,uniprot_id=saccver) %>% add_column(method = "blastx") %>% 
+  mutate(adi_id = str_match(adi_id, pattern = "cds_([A-Z]+_[0-9]+.[0-9])")[,2])
+
+blast <- rbind(blastp, blastx) %>% 
+  group_by(adi_id) %>% 
+  top_n(1,desc(evalue)) %>% 
+  group_by(adi_id, evalue) %>% 
+  filter(row_number()==1)
+
+blast_filtered <- blast %>% filter(evalue < 1e-5)
+
+#Uniprot information is a bit special because it is used to amend the blast result with more info. The uniprot table is #therefore joined with the blast results (only) via their uniprot ID's.
+
+uniprot <- readxl::read_excel("latest/annotation/uniprot.xlsx", guess_max = 10000) %>% 
+  select(-starts_with("yourlist"))
+
+blast_uniprot <- blast_filtered %>% left_join(uniprot, by=c("uniprot_id"='Entry name'))
+```
+
+*SignalP prediction*
+
+``` r
+# SignalP
+#
+signalp <- read_tsv("latest/annotation/GCF_000222465.1_Adig_1.1_protein.signalp.out",comment = "#", col_names = c("adi_id","source","feature","start","end","score","N","A","has_signal")) %>% 
+  filter(has_signal=="YES") %>% select(adi_id,has_signal)
+```
+
+*Pfam domain assignments*
+
+``` r
+# Pfam
+#
+pfam <- read_tsv("latest/annotation/pfam_tabular.txt",comment = "#",col_names = c("adi_id","pfam_id","evalue","description")) %>%
+  group_by(adi_id) %>% 
+  summarise(pfam = paste(unique(pfam_id),collapse=";"))
+```
+
+*Interproscan results* These provide huge amounts of information but we
+only use the GO term assignments. We therefore transform interpro
+results to a simple table mapping adi ids to lists of GO terms
+
+``` r
+# InterproScan
+# Warns about rows with too few columns.  These can be ignored 
+#
+interpro <- read_tsv("latest/annotation/adi.tsv", guess_max = 10000, 
+                     col_names = c("adi_id","md5","seqlen","analysis","signature_acc","signature_desc","start","stop","score","status","date","ipr_acc","ipr_ann","ipr_go", "pathways"))
+
+collapse_go <- function(goterms){
+  tmp <- goterms %>% str_split("\\|") %>% unlist() 
+  tmp <- tmp[!is.na(tmp)]
+  paste(tmp,collapse = ";")
+}
+
+interpro_go <- interpro %>% group_by(adi_id) %>% 
+  summarise(ipr_go = collapse_go(ipr_go))
+```
+
+Finally all the data is merged into a single table and written to
+`annotation_table.tsv`
+
+``` r
+  merged <- protein_lengths %>% 
+  left_join(blast_uniprot) %>% 
+  left_join(signalp,by="adi_id") %>% 
+  left_join(pfam,by="adi_id") %>% 
+  left_join(interpro_go)
+
+write_tsv(merged,"latest/annotation_table.tsv")
+```
+
+## Summary
+
+As a crude summary we simply look at how many non-NA values exist
+against key annotation criteria
+
+![](01_annotate_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
