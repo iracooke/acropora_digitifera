@@ -19,7 +19,7 @@ If you would simply like to run the R code and/or download final results proceed
 1. Checkout this repository 
 2. Download additional data not hosted on github due to size constraints
 ```bash
-wget 'https://cloudstor.aarnet.edu.au/plus/s/B6ZD7PMM1RRNNbN' -O data.tgz
+wget 'https://cloudstor.aarnet.edu.au/plus/s/B6ZD7PMM1RRNNbN/download' -O data.tgz
 tar -zxvf data.tgz 
 ```
 3. You should now be able to compile the Markdown files
